@@ -406,11 +406,12 @@ end
 
 local sell_card_ref = Card.sell_card
 function Card:sell_card()
-	if self.ability and self.ability.name then
-		sendTraceMessage(
-			string.format("Client sent message: action:soldCard,card:%s", self.ability.name),
-			"MULTIPLAYER"
-		)
+        if MP.UTILS.should_block_enemy_joker_sale and MP.UTILS.should_block_enemy_joker_sale(self) then return end
+        if self.ability and self.ability.name then
+                sendTraceMessage(
+                        string.format("Client sent message: action:soldCard,card:%s", self.ability.name),
+                        "MULTIPLAYER"
+                )
 	end
 	return sell_card_ref(self)
 end

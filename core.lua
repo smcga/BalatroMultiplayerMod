@@ -87,6 +87,7 @@ function MP.load_mp_dir(directory)
 	end
 end
 
+MP.load_mp_file("misc/end_game_guard.lua")
 MP.load_mp_file("misc/utils.lua")
 MP.load_mp_file("misc/insane_int.lua")
 
