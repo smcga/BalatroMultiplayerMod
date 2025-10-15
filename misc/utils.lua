@@ -391,11 +391,98 @@ function MP.UTILS.get_deck_key_from_name(_name)
 end
 
 function MP.UTILS.merge_tables(t1, t2)
-	local copy = MP.UTILS.shallow_copy(t1)
-	for k, v in pairs(t2) do
-		copy[k] = v
-	end
-	return copy
+        local copy = MP.UTILS.shallow_copy(t1)
+        for k, v in pairs(t2) do
+                copy[k] = v
+        end
+        return copy
+end
+
+local function remove_sell_ui_node(node, card)
+        if type(node) ~= "table" then return false end
+
+        local config = node.config
+        if config then
+                if config.button and (config.button == "card_sell" or config.button == "sell_card" or config.button == "card_set_sell") then
+                        if type(node.remove) == "function" then pcall(node.remove, node) end
+                        return true
+                end
+
+                if config.id and (config.id == "sell_root" or config.id == "sell_button" or config.id == "sell_label") then
+                        if type(node.remove) == "function" then pcall(node.remove, node) end
+                        return true
+                end
+
+                if config.ref_table == card and config.ref_value and (config.ref_value == "sell_cost" or config.ref_value == "sell_value") then
+                        if type(node.remove) == "function" then pcall(node.remove, node) end
+                        return true
+                end
+
+                if type(config.text) == "string" and config.text:match("^%$") then
+                        if type(node.remove) == "function" then pcall(node.remove, node) end
+                        return true
+                end
+        end
+
+        if node.children then
+                for key, child in pairs(node.children) do
+                        if remove_sell_ui_node(child, card) then
+                                node.children[key] = nil
+                        end
+                end
+        end
+
+        if node.nodes then
+                for i = #node.nodes, 1, -1 do
+                        local child = node.nodes[i]
+                        if remove_sell_ui_node(child, card) then table.remove(node.nodes, i) end
+                end
+        end
+
+        return false
+end
+
+local function remove_card_sell_ui(card)
+        if not card then return end
+
+        if card.children then
+                for key, child in pairs(card.children) do
+                        if remove_sell_ui_node(child, card) then card.children[key] = nil end
+                end
+        end
+
+        if card.T then remove_sell_ui_node(card.T, card) end
+end
+
+function MP.UTILS.mark_card_unsellable(card)
+        if not card then return end
+
+        card.mp_disable_selling = true
+
+        if card.config then card.config.can_sell = false end
+
+        if card.sell_cost ~= nil then card.sell_cost = nil end
+
+        remove_card_sell_ui(card)
+
+        return card
+end
+
+function MP.UTILS.disable_card_area_selling(card_area)
+        if not card_area then return end
+
+        card_area.mp_disable_selling = true
+
+        card_area.config = card_area.config or {}
+        card_area.config.view_deck = true
+
+        if card_area.cards then
+                for _, card in pairs(card_area.cards) do
+                        MP.UTILS.mark_card_unsellable(card)
+                end
+        end
+
+        return card_area
 end
 
 local ease_dollars_ref = ease_dollars
@@ -404,13 +491,23 @@ function ease_dollars(mod, instant)
 	return ease_dollars_ref(mod, instant)
 end
 
+local cardarea_emplace_ref = CardArea and CardArea.emplace
+if cardarea_emplace_ref then
+        function CardArea:emplace(card, location, stay_flipped)
+                local result = cardarea_emplace_ref(self, card, location, stay_flipped)
+                if self.mp_disable_selling then MP.UTILS.mark_card_unsellable(card) end
+                return result
+        end
+end
+
 local sell_card_ref = Card.sell_card
 function Card:sell_card()
-	if self.ability and self.ability.name then
-		sendTraceMessage(
-			string.format("Client sent message: action:soldCard,card:%s", self.ability.name),
-			"MULTIPLAYER"
-		)
+        if self.mp_disable_selling or (self.area and self.area.mp_disable_selling) then return end
+        if self.ability and self.ability.name then
+                sendTraceMessage(
+                        string.format("Client sent message: action:soldCard,card:%s", self.ability.name),
+                        "MULTIPLAYER"
+                )
 	end
 	return sell_card_ref(self)
 end
