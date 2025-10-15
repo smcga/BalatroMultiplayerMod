@@ -161,6 +161,81 @@ function MP.UTILS.get_from_clipboard()
 	end
 end
 
+function MP.UTILS.hide_sell_button(card)
+	if not card or type(card) ~= "table" or type(card.children) ~= "table" then return end
+
+	local function hide_element(key, element)
+		if not element or type(element) ~= "table" then return false end
+
+		local removed = false
+		if element.parent and element.remove_self then
+			element:remove_self()
+			removed = true
+			if key and card.children[key] == element then
+				card.children[key] = nil
+			end
+		end
+
+			if not removed then
+				if element.visible ~= false then
+					element.visible = false
+			end
+			if element.config and element.config.visible ~= false then
+				element.config.visible = false
+			end
+			removed = true
+		end
+
+		return removed
+	end
+
+	local sell_keys = { "sell_button", "use_button" }
+	local handled_keys = {}
+	for _, key in ipairs(sell_keys) do
+		handled_keys[key] = hide_element(key, card.children[key])
+	end
+
+	local function identifies_sell(element)
+		local identifiers = {}
+
+		local function push_identifier(value)
+			if type(value) == "string" then
+				identifiers[#identifiers + 1] = value:lower()
+			end
+		end
+
+		if element then
+			push_identifier(element.id)
+			push_identifier(element.key)
+			push_identifier(element.name)
+			if element.config then
+				push_identifier(element.config.id)
+				push_identifier(element.config.name)
+				push_identifier(element.config.ref_key)
+				if type(element.config.ref_table) == "string" then
+					push_identifier(element.config.ref_table)
+				elseif type(element.config.ref_table) == "table" then
+					for _, v in pairs(element.config.ref_table) do
+						push_identifier(v)
+					end
+				end
+			end
+		end
+
+		for _, value in ipairs(identifiers) do
+			if value:find("sell", 1, true) then return true end
+		end
+
+		return false
+	end
+
+	for key, child in pairs(card.children) do
+		if not handled_keys[key] and identifies_sell(child) then
+			hide_element(key, child)
+		end
+	end
+end
+
 function MP.UTILS.overlay_message(message)
 	G.SETTINGS.paused = true
 	local message_table = MP.UTILS.string_split(message, "\n")
