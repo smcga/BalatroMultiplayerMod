@@ -56,6 +56,18 @@ Contributions that make content changes like modifying how the base game works, 
 
 Check the [issues](https://github.com/Balatro-Multiplayer/BalatroMultiplayer/issues), there are usually issues with the "Help Wanted" tag that are just looking for someone to work on them! I (Virtualized) try and be very clear about what the problem is and what the expected solution is in these issues so hopefully there is little confusion, but feel free to DM or ping `virtualized` on discord for clarification.
 
+## ✅ Testing
+
+Unit tests live in the `spec/` directory and can be executed locally with [Busted](https://olivinelabs.com/busted/):
+
+```bash
+luarocks install busted
+luarocks install luassert
+busted spec
+```
+
+All pushes and pull requests automatically run these checks via the **Lua Tests** workflow in GitHub Actions.
+
 ## 📜 License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE.md](https://github.com/V-rtualized/balatro-multiplayer/blob/main/LICENSE.md) file for details.
