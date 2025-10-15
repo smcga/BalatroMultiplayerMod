@@ -391,11 +391,106 @@ function MP.UTILS.get_deck_key_from_name(_name)
 end
 
 function MP.UTILS.merge_tables(t1, t2)
-	local copy = MP.UTILS.shallow_copy(t1)
-	for k, v in pairs(t2) do
-		copy[k] = v
-	end
-	return copy
+        local copy = MP.UTILS.shallow_copy(t1)
+        for k, v in pairs(t2) do
+                copy[k] = v
+        end
+        return copy
+end
+
+local function remove_sell_affordance_from_node(node, parent_children, key)
+        if type(node) ~= "table" then return end
+
+        local config = node.config
+        if type(config) == "table" then
+                local button = config.button
+                local id = config.id
+                if
+                        (type(button) == "string" and button:lower():find("sell", 1, true))
+                        or (type(id) == "string" and id:lower():find("sell", 1, true))
+                then
+                        if type(node.remove) == "function" then node:remove() end
+
+                        if type(parent_children) == "table" and parent_children[key] == node then
+                                if type(key) == "number" and #parent_children > 0 then
+                                        table.remove(parent_children, key)
+                                else
+                                        parent_children[key] = nil
+                                end
+                        end
+
+                        return
+                end
+        end
+
+        local children = node.children
+        if type(children) ~= "table" then return end
+
+        if #children > 0 then
+                for i = #children, 1, -1 do
+                        remove_sell_affordance_from_node(children[i], children, i)
+                end
+        else
+                local keys = {}
+                for child_key in pairs(children) do
+                        keys[#keys + 1] = child_key
+                end
+                for i = 1, #keys do
+                        local child_key = keys[i]
+                        remove_sell_affordance_from_node(children[child_key], children, child_key)
+                end
+        end
+end
+
+function MP.UTILS.remove_card_sell_affordance(card)
+        if not card or type(card.children) ~= "table" then return card end
+
+        local root_keys = {}
+        for key in pairs(card.children) do
+                root_keys[#root_keys + 1] = key
+        end
+
+        for i = 1, #root_keys do
+                        local key = root_keys[i]
+                        remove_sell_affordance_from_node(card.children[key], card.children, key)
+        end
+
+        if type(card.UIBox) == "table" and type(card.UIBox.recalculate) == "function" then
+                        card.UIBox:recalculate()
+        end
+
+        return card
+end
+
+function MP.UTILS.mark_card_unsellable(card)
+        if not card then return end
+
+        card.mp_disable_selling = true
+
+        if card.config then card.config.can_sell = false end
+
+        if card.sell_cost ~= nil then card.sell_cost = nil end
+
+        MP.UTILS.remove_card_sell_affordance(card)
+
+        return card
+end
+
+function MP.UTILS.disable_card_area_selling(card_area)
+        if not card_area then return end
+
+        card_area.mp_disable_selling = true
+
+        card_area.config = card_area.config or {}
+        card_area.config.view_deck = true
+
+        if card_area.cards then
+                for _, card in pairs(card_area.cards) do
+                        MP.UTILS.mark_card_unsellable(card)
+                end
+        end
+
+        return card_area
 end
 
 local ease_dollars_ref = ease_dollars
@@ -404,13 +499,23 @@ function ease_dollars(mod, instant)
 	return ease_dollars_ref(mod, instant)
 end
 
+local cardarea_emplace_ref = CardArea and CardArea.emplace
+if cardarea_emplace_ref then
+        function CardArea:emplace(card, location, stay_flipped)
+                local result = cardarea_emplace_ref(self, card, location, stay_flipped)
+                if self.mp_disable_selling then MP.UTILS.mark_card_unsellable(card) end
+                return result
+        end
+end
+
 local sell_card_ref = Card.sell_card
 function Card:sell_card()
-	if self.ability and self.ability.name then
-		sendTraceMessage(
-			string.format("Client sent message: action:soldCard,card:%s", self.ability.name),
-			"MULTIPLAYER"
-		)
+        if self.mp_disable_selling or (self.area and self.area.mp_disable_selling) then return end
+        if self.ability and self.ability.name then
+                sendTraceMessage(
+                        string.format("Client sent message: action:soldCard,card:%s", self.ability.name),
+                        "MULTIPLAYER"
+                )
 	end
 	return sell_card_ref(self)
 end
