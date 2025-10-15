@@ -546,20 +546,23 @@ function G.FUNCS.load_end_game_jokers()
 	if not success then
 		sendDebugMessage(string.format("Failed to load enemy jokers: %s", err), "MULTIPLAYER")
 		-- Reset the card area if loading fails to avoid inconsistent state
-		MP.end_game_jokers:remove()
-		MP.end_game_jokers:init(
-			0,
-			0,
-			5 * G.CARD_W,
-			G.CARD_H,
-			{ card_limit = G.GAME.starting_params.joker_slots, type = "joker", highlight_limit = 1 }
-		)
-		return
-	end
+                MP.end_game_jokers:remove()
+                MP.end_game_jokers:init(
+                        0,
+                        0,
+                        5 * G.CARD_W,
+                        G.CARD_H,
+                        { card_limit = G.GAME.starting_params.joker_slots, type = "joker", highlight_limit = 1 }
+                )
+                MP.UTILS.disable_card_area_selling(MP.end_game_jokers)
+                return
+        end
 
-	-- Log the jokers
-	if MP.end_game_jokers.cards then
-		local jokers_str = ""
+        MP.UTILS.disable_card_area_selling(MP.end_game_jokers)
+
+        -- Log the jokers
+        if MP.end_game_jokers.cards then
+                local jokers_str = ""
 		for _, card in pairs(MP.end_game_jokers.cards) do
 			jokers_str = jokers_str .. ";" .. MP.UTILS.joker_to_string(card)
 		end
