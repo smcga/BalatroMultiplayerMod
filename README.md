@@ -25,6 +25,11 @@ Quick installation steps:
 4. Press "View Code" and send the code to the person you want to play with
 5. The other player will select "Play", then "Join Lobby" and enter the code
 6. Press "Start" to start the game!
+
+## 📚 Documentation
+
+- [Queue behaviour reference](docs/queues.md) – explains how shop, consumable, and voucher queues stay in sync, and how The
+  Order integration changes their behaviour.
    
 ## 🤝 Contributing
 
