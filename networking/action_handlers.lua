@@ -557,6 +557,12 @@ function G.FUNCS.load_end_game_jokers()
 		return
 	end
 
+	if MP.end_game_jokers.cards then
+		for _, card in pairs(MP.end_game_jokers.cards) do
+			MP.UTILS.hide_sell_button(card)
+		end
+	end
+
 	-- Log the jokers
 	if MP.end_game_jokers.cards then
 		local jokers_str = ""

@@ -1761,6 +1761,11 @@ function G.FUNCS.toggle_players_jokers()
 	if MP.end_game_jokers_text == localize("k_enemy_jokers") then
 		local your_jokers_save = copy_table(G.jokers:save())
 		MP.end_game_jokers:load(your_jokers_save)
+		if MP.end_game_jokers.cards then
+			for _, card in pairs(MP.end_game_jokers.cards) do
+				MP.UTILS.hide_sell_button(card)
+			end
+		end
 		MP.end_game_jokers_text = localize("k_your_jokers")
 	else
 		if MP.end_game_jokers_received then

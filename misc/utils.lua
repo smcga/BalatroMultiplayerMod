@@ -161,6 +161,33 @@ function MP.UTILS.get_from_clipboard()
 	end
 end
 
+function MP.UTILS.hide_sell_button(card)
+        if not card or not card.children then return end
+
+        local function hide_button(child_key)
+                local button = card.children[child_key]
+                if not button then return false end
+
+                if button.remove then
+                        button:remove()
+                        if card.children[child_key] == button then card.children[child_key] = nil end
+                        return true
+                elseif button.remove_self then
+                        button:remove_self()
+                        if card.children[child_key] == button then card.children[child_key] = nil end
+                        return true
+                end
+
+                button.visible = false
+                if button.config then button.config.visible = false end
+
+                return false
+        end
+
+        if hide_button("use_button") then return end
+        hide_button("sell_button")
+end
+
 function MP.UTILS.overlay_message(message)
 	G.SETTINGS.paused = true
 	local message_table = MP.UTILS.string_split(message, "\n")
