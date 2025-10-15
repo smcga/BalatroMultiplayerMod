@@ -161,6 +161,20 @@ function MP.UTILS.get_from_clipboard()
 	end
 end
 
+function MP.UTILS.hide_sell_button(card)
+	if not card or not card.children then return end
+
+	local use_button = card.children.use_button
+	if not use_button then return end
+
+	if use_button.parent and use_button.remove_self then
+		use_button:remove_self()
+		card.children.use_button = nil
+	else
+		use_button.visible = false
+	end
+end
+
 function MP.UTILS.overlay_message(message)
 	G.SETTINGS.paused = true
 	local message_table = MP.UTILS.string_split(message, "\n")
