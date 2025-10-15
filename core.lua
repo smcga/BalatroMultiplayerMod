@@ -88,6 +88,7 @@ function MP.load_mp_dir(directory)
 end
 
 MP.load_mp_file("misc/utils.lua")
+MP.load_mp_file("misc/overlay.lua")
 MP.load_mp_file("misc/insane_int.lua")
 
 function MP.reset_lobby_config(persist_ruleset_and_gamemode)
@@ -154,6 +155,7 @@ function MP.reset_game_states()
 		prevent_eval = false,
 		round_ended = false,
 		duplicate_end = false,
+		disable_end_screen_selling = false,
 		misprint_display = "",
 		spent_total = 0,
 		spent_before_shop = 0,

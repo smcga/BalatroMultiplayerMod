@@ -1330,6 +1330,7 @@ local function create_UIBox_mp_game_end(has_won)
 	end
 
 	G.SETTINGS.paused = false
+	MP.GAME.disable_end_screen_selling = true
 
 	local eased_bg_colour
 	if has_won then
