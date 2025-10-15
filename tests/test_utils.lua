@@ -37,13 +37,27 @@ local function run_test(name, fn)
     end
 end
 
-run_test('hide_sell_button removes button with parent', function()
+run_test('hide_sell_button removes button via remove', function()
     local removed = false
     local card = { children = {} }
-    local use_button = { parent = {} }
+    local use_button = {}
+    function use_button:remove()
+        removed = true
+    end
+    card.children.use_button = use_button
+
+    MP.UTILS.hide_sell_button(card)
+
+    assertTrue(removed, 'Expected remove to be called')
+    assertTrue(card.children.use_button == nil, 'Expected use button reference to be cleared')
+end)
+
+run_test('hide_sell_button removes button via remove_self', function()
+    local removed = false
+    local card = { children = {} }
+    local use_button = {}
     function use_button:remove_self()
         removed = true
-        self.parent = nil
     end
     card.children.use_button = use_button
 
@@ -53,12 +67,26 @@ run_test('hide_sell_button removes button with parent', function()
     assertTrue(card.children.use_button == nil, 'Expected use button reference to be cleared')
 end)
 
-run_test('hide_sell_button hides button without parent', function()
-    local card = { children = { use_button = { visible = true } } }
+run_test('hide_sell_button hides button without removal helpers', function()
+    local card = { children = { use_button = { visible = true, config = { visible = true } } } }
 
     MP.UTILS.hide_sell_button(card)
 
     assertTrue(card.children.use_button.visible == false, 'Expected use button to be hidden')
+    assertTrue(card.children.use_button.config.visible == false, 'Expected config visibility to be hidden')
+end)
+
+run_test('hide_sell_button falls back to sell_button child', function()
+    local removed = false
+    local card = { children = { sell_button = {} } }
+    function card.children.sell_button:remove()
+        removed = true
+    end
+
+    MP.UTILS.hide_sell_button(card)
+
+    assertTrue(removed, 'Expected remove to be called on sell button')
+    assertTrue(card.children.sell_button == nil, 'Expected sell button reference to be cleared')
 end)
 
 run_test('hide_sell_button handles nil card', function()
