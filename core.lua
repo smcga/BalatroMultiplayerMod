@@ -87,9 +87,6 @@ function MP.load_mp_dir(directory)
 	end
 end
 
-MP.load_mp_file("misc/utils.lua")
-MP.load_mp_file("misc/insane_int.lua")
-
 function MP.reset_lobby_config(persist_ruleset_and_gamemode)
 	sendDebugMessage("Resetting lobby options", "MULTIPLAYER")
 	MP.LOBBY.config = {
@@ -121,7 +118,6 @@ function MP.reset_lobby_config(persist_ruleset_and_gamemode)
 		legacy_smallworld = false,
 	}
 end
-MP.reset_lobby_config()
 
 function MP.reset_game_states()
 	sendDebugMessage("Resetting game states", "MULTIPLAYER")
@@ -176,74 +172,83 @@ function MP.reset_game_states()
 			reroll_cost_total = 0,
 			-- Add more stats here in the future
 		},
-	}
-end
-MP.reset_game_states()
-
-MP.LOBBY.username = MP.UTILS.get_username()
-MP.LOBBY.blind_col = MP.UTILS.get_blind_col()
-
-MP.LOBBY.config.weekly = MP.UTILS.get_weekly()
-
-if not SMODS.current_mod.lovely then
-	G.E_MANAGER:add_event(Event({
-		no_delete = true,
-		trigger = "immediate",
-		blockable = false,
-		blocking = false,
-		func = function()
-			if G.MAIN_MENU_UI then
-				MP.UTILS.overlay_message(
-					MP.UTILS.wrapText(
-						"Your Multiplayer Mod is not loaded correctly, make sure the Multiplayer folder does not have an extra Multiplayer folder around it.",
-						50
-					)
-				)
-				return true
-			end
-		end,
-	}))
-	return
+        }
 end
 
-SMODS.Atlas({
-	key = "modicon",
-	path = "modicon.png",
-	px = 34,
-	py = 34,
-})
+if not rawget(_G, "MP_SKIP_BOOTSTRAP") then
+        MP.load_mp_file("misc/utils.lua")
+        MP.load_mp_file("misc/insane_int.lua")
 
-MP.load_mp_dir("compatibility")
+        MP.reset_lobby_config()
+        MP.reset_game_states()
 
-MP.load_mp_file("networking/action_handlers.lua")
+        MP.LOBBY.username = MP.UTILS.get_username()
+        MP.LOBBY.blind_col = MP.UTILS.get_blind_col()
 
-MP.load_mp_dir("ui/components") -- Gamemodes and rulesets need these
+        MP.LOBBY.config.weekly = MP.UTILS.get_weekly()
 
-MP.load_mp_dir("rulesets")
-if MP.LOBBY.config.weekly then -- this could be a function but why bother
-	MP.load_mp_file("rulesets/weeklies/" .. MP.LOBBY.config.weekly .. ".lua")
+        if not SMODS.current_mod.lovely then
+                G.E_MANAGER:add_event(Event({
+                        no_delete = true,
+                        trigger = "immediate",
+                        blockable = false,
+                        blocking = false,
+                        func = function()
+                                if G.MAIN_MENU_UI then
+                                        MP.UTILS.overlay_message(
+                                                MP.UTILS.wrapText(
+                                                        "Your Multiplayer Mod is not loaded correctly, make sure the Multiplayer folder does not have an extra Multiplayer folder around it.",
+                                                        50
+                                                )
+                                        )
+                                        return true
+                                end
+                        end,
+                }))
+                return MP
+        end
+
+        SMODS.Atlas({
+                key = "modicon",
+                path = "modicon.png",
+                px = 34,
+                py = 34,
+        })
+
+        MP.load_mp_dir("compatibility")
+
+        MP.load_mp_file("networking/action_handlers.lua")
+
+        MP.load_mp_dir("ui/components") -- Gamemodes and rulesets need these
+
+        MP.load_mp_dir("rulesets")
+        if MP.LOBBY.config.weekly then -- this could be a function but why bother
+                MP.load_mp_file("rulesets/weeklies/" .. MP.LOBBY.config.weekly .. ".lua")
+        end
+        MP.load_mp_dir("gamemodes")
+
+        MP.load_mp_dir("objects/editions")
+        MP.load_mp_dir("objects/enhancements")
+        MP.load_mp_dir("objects/stickers")
+        MP.load_mp_dir("objects/blinds")
+        MP.load_mp_dir("objects/decks")
+        MP.load_mp_dir("objects/jokers")
+        MP.load_mp_dir("objects/jokers/sandbox")
+        MP.load_mp_dir("objects/stakes")
+        MP.load_mp_dir("objects/tags")
+        MP.load_mp_dir("objects/consumables")
+        MP.load_mp_dir("objects/boosters")
+        MP.load_mp_dir("objects/challenges")
+
+        MP.load_mp_dir("ui")
+
+        MP.load_mp_file("misc/disable_restart.lua")
+        MP.load_mp_file("misc/mod_hash.lua")
+
+        local SOCKET = MP.load_mp_file("networking/socket.lua")
+        MP.NETWORKING_THREAD = love.thread.newThread(SOCKET)
+        MP.NETWORKING_THREAD:start(SMODS.Mods["Multiplayer"].config.server_url, SMODS.Mods["Multiplayer"].config.server_port)
+        MP.ACTIONS.connect()
 end
-MP.load_mp_dir("gamemodes")
 
-MP.load_mp_dir("objects/editions")
-MP.load_mp_dir("objects/enhancements")
-MP.load_mp_dir("objects/stickers")
-MP.load_mp_dir("objects/blinds")
-MP.load_mp_dir("objects/decks")
-MP.load_mp_dir("objects/jokers")
-MP.load_mp_dir("objects/jokers/sandbox")
-MP.load_mp_dir("objects/stakes")
-MP.load_mp_dir("objects/tags")
-MP.load_mp_dir("objects/consumables")
-MP.load_mp_dir("objects/boosters")
-MP.load_mp_dir("objects/challenges")
-
-MP.load_mp_dir("ui")
-
-MP.load_mp_file("misc/disable_restart.lua")
-MP.load_mp_file("misc/mod_hash.lua")
-
-local SOCKET = MP.load_mp_file("networking/socket.lua")
-MP.NETWORKING_THREAD = love.thread.newThread(SOCKET)
-MP.NETWORKING_THREAD:start(SMODS.Mods["Multiplayer"].config.server_url, SMODS.Mods["Multiplayer"].config.server_port)
-MP.ACTIONS.connect()
+return MP
