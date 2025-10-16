@@ -1305,18 +1305,20 @@ function Game:start_run(args)
 end
 
 local function create_UIBox_mp_game_end(has_won)
-	MP.end_game_jokers = CardArea(
-		0,
-		0,
-		5 * G.CARD_W,
-		G.CARD_H,
-		{ card_limit = G.GAME.starting_params.joker_slots, type = "joker", highlight_limit = 1 }
-	)
-	if not MP.end_game_jokers_received then
-		MP.ACTIONS.get_end_game_jokers()
-	else
-		G.FUNCS.load_end_game_jokers()
-	end
+        MP.end_game_jokers = CardArea(
+                0,
+                0,
+                5 * G.CARD_W,
+                G.CARD_H,
+                { card_limit = G.GAME.starting_params.joker_slots, type = "joker", highlight_limit = 1 }
+        )
+        MP.UTILS.disable_card_area_selling(MP.end_game_jokers)
+        if not MP.end_game_jokers_received then
+                MP.ACTIONS.get_end_game_jokers()
+        else
+                G.FUNCS.load_end_game_jokers()
+        end
+        MP.UTILS.disable_card_area_selling(MP.end_game_jokers)
 	MP.end_game_jokers_text = localize("k_enemy_jokers")
 
 	MP.ACTIONS.request_nemesis_stats()
@@ -1758,19 +1760,20 @@ function G.FUNCS.toggle_players_jokers()
 		end
 	end
 
-	if MP.end_game_jokers_text == localize("k_enemy_jokers") then
-		local your_jokers_save = copy_table(G.jokers:save())
-		MP.end_game_jokers:load(your_jokers_save)
-		MP.end_game_jokers_text = localize("k_your_jokers")
-	else
+        if MP.end_game_jokers_text == localize("k_enemy_jokers") then
+                local your_jokers_save = copy_table(G.jokers:save())
+                MP.end_game_jokers:load(your_jokers_save)
+                MP.end_game_jokers_text = localize("k_your_jokers")
+        else
 		if MP.end_game_jokers_received then
 			G.FUNCS.load_end_game_jokers()
 		else
 			if MP.end_game_jokers.cards then remove_all(MP.end_game_jokers.cards) end
 			MP.end_game_jokers.cards = {}
-		end
-		MP.end_game_jokers_text = localize("k_enemy_jokers")
-	end
+                end
+                MP.end_game_jokers_text = localize("k_enemy_jokers")
+        end
+        MP.UTILS.disable_card_area_selling(MP.end_game_jokers)
 end
 
 function G.FUNCS.view_nemesis_deck()
