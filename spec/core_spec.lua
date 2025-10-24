@@ -240,4 +240,150 @@ describe("MP.reset_game_states", function()
     end)
 end)
 
+describe("Voucher rerolls when Telescope is skipped", function()
+    local reset_rng
+    local current_pool
+    local pools
+
+    local function copy_pool(source)
+        local clone = {}
+        for i, v in ipairs(source) do
+            clone[i] = v
+        end
+        return clone
+    end
+
+    local function next_voucher_for(pool_key)
+        current_pool = pool_key
+        reset_rng()
+        local vouchers = SMODS.get_next_vouchers()
+        return vouchers[1]
+    end
+
+    before_each(function()
+        CardArea = {}
+        G.pack_cards = {}
+        G.playing_cards = {}
+        G.deck = setmetatable({ cards = {}, set_ranks = function() end }, { __index = CardArea })
+        G.GAME.round_resets = { ante = 2 }
+        G.GAME.current_round = { idol_card = {}, mail_card = {} }
+        G.GAME.hands = {}
+        G.GAME.blind = { config = { blind = { key = "" } } }
+        G.GAME.starting_params = { vouchers_in_shop = 2 }
+        G.GAME.modifiers = { extra_vouchers = 0 }
+
+        function CardArea:shuffle(_seed) end
+        function CardArea:set_ranks() end
+
+        create_card = function()
+            return {
+                ability = { set = "Joker" },
+                config = { center_key = "", center = { key = "" } },
+                base = { suit = "Spades", id = 1, value = "Ace" },
+            }
+        end
+
+        reset_idol_card = function() end
+        reset_mail_rank = function() end
+
+        SMODS.Rank = { obj_buffer = { "Ace" } }
+        SMODS.Suit = { obj_buffer = { "Spades" } }
+        SMODS.Booster = { take_ownership_by_kind = function() end }
+        poll_edition = function() end
+        SMODS.poll_seal = function() end
+        SMODS.size_of_pool = function(pool) return #pool end
+
+        pools = {
+            player_one = { "UNAVAILABLE", "Antimatter", "Telescope", "UNAVAILABLE" },
+            player_two = { "Observatory", "UNAVAILABLE", "UNAVAILABLE", "Antimatter" },
+        }
+
+        get_current_pool = function(pool_type)
+            assert.are.equal("Voucher", pool_type)
+            assert.is_not_nil(current_pool)
+            return copy_pool(pools[current_pool])
+        end
+
+        get_next_voucher_key = function()
+            return "Placeholder"
+        end
+
+        local rng_state = {}
+        reset_rng = function()
+            for key in pairs(rng_state) do
+                rng_state[key] = nil
+            end
+        end
+
+        pseudoseed = function(key)
+            return key
+        end
+
+        pseudorandom = function(seed)
+            seed = seed or "default"
+            rng_state[seed] = (rng_state[seed] or 0) + 1
+            return rng_state[seed]
+        end
+
+        pseudorandom_element = function(t, seed)
+            local index = pseudorandom(seed)
+            local values = {}
+            for i = 1, #t do
+                values[i] = t[i]
+            end
+            local choice = ((index - 1) % #values) + 1
+            return values[choice], choice
+        end
+
+        SMODS.get_next_vouchers = function(vouchers)
+            vouchers = vouchers or { spawn = {} }
+            local pool = get_current_pool("Voucher")
+            for i = #vouchers + 1, G.GAME.starting_params.vouchers_in_shop do
+                local selection = ((pseudorandom("Voucher0") - 1) % #pool) + 1
+                local center = pool[selection]
+                while center == "UNAVAILABLE" or vouchers.spawn[center] do
+                    selection = ((pseudorandom("Voucher0") - 1) % #pool) + 1
+                    center = pool[selection]
+                end
+                vouchers[#vouchers + 1] = center
+                vouchers.spawn[center] = true
+            end
+            return vouchers
+        end
+
+        package.loaded["compatibility/TheOrder"] = nil
+        dofile("compatibility/TheOrder.lua")
+
+        MP.LOBBY.code = nil
+    end)
+
+    it("shows Antimatter to player one with The Order enabled", function()
+        MP.LOBBY.config.the_order = true
+        MP.LOBBY.code = "ORDERED"
+        local voucher = next_voucher_for("player_one")
+        assert.are.equal("Antimatter", voucher)
+    end)
+
+    it("shows Antimatter to player one with The Order disabled", function()
+        MP.LOBBY.config.the_order = false
+        MP.LOBBY.code = nil
+        local voucher = next_voucher_for("player_one")
+        assert.are.equal("Antimatter", voucher)
+    end)
+
+    it("shows Observatory to player two with The Order enabled", function()
+        MP.LOBBY.config.the_order = true
+        MP.LOBBY.code = "ORDERED"
+        local voucher = next_voucher_for("player_two")
+        assert.are.equal("Observatory", voucher)
+    end)
+
+    it("shows Observatory to player two with The Order disabled", function()
+        MP.LOBBY.config.the_order = false
+        MP.LOBBY.code = nil
+        local voucher = next_voucher_for("player_two")
+        assert.are.equal("Observatory", voucher)
+    end)
+end)
+
 return true
