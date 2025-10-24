@@ -66,12 +66,14 @@ local function setup_environment()
             round_resets = { ante = 3 },
             starting_params = { vouchers_in_shop = 1 },
             modifiers = {},
+            stake = 1,
             current_round = {
                 idol_card = {},
                 mail_card = {},
             },
             pseudorandom = {},
             used_vouchers = {},
+            hands = {},
             blind = {
                 config = { blind = { key = "" } },
                 name = "",
@@ -86,7 +88,16 @@ local function setup_environment()
         play = {},
     }
 
+    _G.poll_edition = function() end
+    _G.sendDebugMessage = function() end
+
+    local booster = {}
+    function booster:take_ownership_by_kind(_, _)
+        return self
+    end
+
     _G.SMODS = {
+        Booster = booster,
         poll_seal = function() end,
         size_of_pool = function(pool)
             return #pool
